@@ -58,7 +58,7 @@ memory (OOM). If you would like to run safely, you can modify some components su
 number of layers, dim (dimensions) ... The performance might be different, but it is the only
 choice we can do.
 
-## Amazon Book Graph Data
+## 2. Amazon Book Graph Data
 
 In the AmazonBook dataset, the original data structure is heterogeneous, consisting of two
 distinct node types:
@@ -81,9 +81,43 @@ Visually, the graph looks sparse, they are not connected to each other. Admitted
 
 <img width="300" height="200" alt="Image" src="https://github.com/user-attachments/assets/02c70789-d4de-4390-8ff9-77f81a967717" />
 
-### 5.1 Graph Sparsity
+### 2.1. Graph Sparsity
 
 Looking at the graph density, less than **0.03% of all possible edges** exist, and over **91,000
 nodes** are completely disconnected. Such extreme sparsity indicates that the majority of
 users interact with only a few items, while a small subset of popular books receive many
 connections.
+
+### 2.2. Limitations of the Heterogeneous Graph
+
+While this bipartite representation accurately captures user–item relationships, it introduces
+two key limitations for Graph Neural Networks (GNNs):
+
+1. Limited Message Passing: Information can only flow between users and items, never
+within the same type.
+This restricts feature propagation and weakens node representation learning.
+2. Disconnected Components: With so many isolated or weakly linked nodes, the GNN
+struggles to aggregate global context or learn stable embeddings.
+
+### 2.3 Conversion to a Homogeneous Graph
+
+To enable effective message passing and embedding propagation across both users and
+items, the graph must be converted to a homogeneous representation.
+This transformation re-indexes all nodes into a single continuous node space, where:
+
+- User nodes occupy the index range [0, num_users)
+- Item nodes are offset to [num_users, num_users + num_items)
+  
+The conversion process duplicates each edge in the reverse direction, ensuring that the
+resulting graph is bidirectional.
+
+This is crucial for GNN aggregation since information must flow both from users to items and
+from items back to users.
+
+| Heterogeneous Graph  | Homogeneous Graph |
+|-----------------|----------------|
+| Two disjoint node types (Users,Books)    | Unified node index space  |
+| Directional edge: User → Book    | Bidirectional: User ↔ Book  |
+| Incompatible with standard GNN layers   | Compatible with standard message passing  |
+
+This conversion to homogeneous allows the model to **learn shared latent representations** across node types and supports **efficient neighborhood aggregation**.
